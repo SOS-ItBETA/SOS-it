@@ -15,6 +15,8 @@
       background-color: #f4f4f4;
       color: #111;
       transition: background-color 0.3s, color 0.3s;
+      position: relative;
+      min-height: 100vh;
     }
     .dark-mode {
       background-color: #121212;
@@ -66,9 +68,10 @@
     }
     #quick-sos {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1000;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1002;
       width: 80px;
       height: 80px;
       border-radius: 50%;
@@ -79,6 +82,21 @@
       align-items: center;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       animation: blink 1.5s infinite;
+      border: 5px solid transparent;
+    }
+    #quick-sos::after {
+      content: '';
+      position: fixed;
+      bottom: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200vw;
+      height: 150px;
+      border-radius: 50%;
+      background-image: radial-gradient(circle, rgba(255, 0, 0, 0.5) 0%, rgba(255, 0, 0, 0) 70%);
+      animation: glowing-background 2s infinite;
+      z-index: 1001;
+      box-shadow: 0 0 30px #d32f2f;
     }
     #controls {
       display: flex;
@@ -209,6 +227,20 @@
       50% { background-color: #1E88E5; }
       100% { background-color: #d32f2f; }
     }
+    @keyframes glowing-background {
+      0% {
+        background-image: radial-gradient(circle, rgba(211, 47, 47, 0.6) 0%, rgba(211, 47, 47, 0) 70%);
+        box-shadow: 0 0 30px #d32f2f;
+      }
+      50% {
+        background-image: radial-gradient(circle, rgba(30, 136, 229, 0.6) 0%, rgba(30, 136, 229, 0) 70%);
+        box-shadow: 0 0 30px #1E88E5;
+      }
+      100% {
+        background-image: radial-gradient(circle, rgba(211, 47, 47, 0.6) 0%, rgba(211, 47, 47, 0) 70%);
+        box-shadow: 0 0 30px #d32f2f;
+      }
+    }
   </style>
 </head>
 <body>
@@ -225,6 +257,13 @@
         <option value="hi">हिन्दी (Hindi)</option>
         <option value="bn">বাংলা (Bengali)</option>
         <option value="ta">தமிழ் (Tamil)</option>
+        <option value="es">Español (Spanish)</option>
+        <option value="fr">Français (French)</option>
+        <option value="de">Deutsch (German)</option>
+        <option value="ru">Русский (Russian)</option>
+        <option value="ar">العربية (Arabic)</option>
+        <option value="ja">日本語 (Japanese)</option>
+        <option value="zh">中文 (Chinese)</option>
       </select>
     </div>
     <label class="sos-box">
@@ -288,7 +327,7 @@
     const translations = {
       en: {
         appHeader: "SOSit - Emergency Navigation",
-        quickSos: "🚨", // Button now just shows the icon
+        quickSos: "🚨",
         voiceSos: "🎙️ Voice SOS",
         medicalInfo: "🧩 Medical Info",
         toggleTheme: "🌗 Toggle Theme",
@@ -415,6 +454,188 @@
         fireService: "🔥 தீயணைப்புப் படை",
         calling: "📞 அழைக்கிறது",
         locationNotAvailable: "இடம் கிடைக்கவில்லை.",
+      },
+      es: {
+        appHeader: "SOSit - Navegación de Emergencia",
+        quickSos: "🚨",
+        voiceSos: "🎙️ SOS por voz",
+        medicalInfo: "🧩 Información Médica",
+        toggleTheme: "🌗 Cambiar Tema",
+        findHospitals: "🏥 Encontrar Hospitales",
+        findPoliceStations: "🚓 Encontrar Comisarías",
+        findFireStations: "🔥 Encontrar Estaciones de Bomberos",
+        medicalModalTitle: "🧩 ID Médica / Información de Emergencia",
+        fullName: "Nombre Completo:",
+        dob: "Fecha de Nacimiento:",
+        bloodGroup: "Grupo Sanguíneo:",
+        allergies: "Alergias:",
+        medications: "Medicamentos:",
+        conditions: "Condiciones Médicas:",
+        emergencyContact: "Contacto de Emergencia:",
+        saveInfo: "💾 Guardar Información",
+        infoSaved: "✅ Información guardada localmente.",
+        sosModalTitle: "🚨 Elegir Servicio de Emergencia",
+        policeService: "🚓 Policía",
+        ambulanceService: "🚑 Ambulancia",
+        fireService: "🔥 Bomberos",
+        calling: "📞 Llamando a",
+        locationNotAvailable: "Ubicación no disponible.",
+      },
+      fr: {
+        appHeader: "SOSit - Navigation d'urgence",
+        quickSos: "🚨",
+        voiceSos: "🎙️ SOS vocal",
+        medicalInfo: "🧩 Infos Médicales",
+        toggleTheme: "🌗 Changer de thème",
+        findHospitals: "🏥 Trouver des Hôpitaux",
+        findPoliceStations: "🚓 Trouver des Postes de Police",
+        findFireStations: "🔥 Trouver des Casernes de Pompiers",
+        medicalModalTitle: "🧩 ID Médicale / Infos d'Urgence",
+        fullName: "Nom Complet:",
+        dob: "Date de Naissance:",
+        bloodGroup: "Groupe Sanguin:",
+        allergies: "Allergies:",
+        medications: "Médicaments:",
+        conditions: "Conditions Médicales:",
+        emergencyContact: "Contact d'Urgence:",
+        saveInfo: "💾 Enregistrer les Infos",
+        infoSaved: "✅ Informations enregistrées localement !",
+        sosModalTitle: "🚨 Choisir un Service d'Urgence",
+        policeService: "🚓 Police",
+        ambulanceService: "🚑 Ambulance",
+        fireService: "🔥 Pompiers",
+        calling: "📞 Appel en cours",
+        locationNotAvailable: "Localisation non disponible.",
+      },
+      de: {
+        appHeader: "SOSit - Notfall-Navigation",
+        quickSos: "🚨",
+        voiceSos: "🎙️ Sprach-SOS",
+        medicalInfo: "🧩 Medizinische Infos",
+        toggleTheme: "🌗 Thema wechseln",
+        findHospitals: "🏥 Krankenhäuser finden",
+        findPoliceStations: "🚓 Polizeistationen finden",
+        findFireStations: "🔥 Feuerwachen finden",
+        medicalModalTitle: "🧩 Medizinische ID / Notfall-Info",
+        fullName: "Vollständiger Name:",
+        dob: "Geburtsdatum:",
+        bloodGroup: "Blutgruppe:",
+        allergies: "Allergien:",
+        medications: "Medikamente:",
+        conditions: "Gesundheitszustand:",
+        emergencyContact: "Notfallkontakt:",
+        saveInfo: "💾 Infos speichern",
+        infoSaved: "✅ Informationen lokal gespeichert!",
+        sosModalTitle: "🚨 Notdienst auswählen",
+        policeService: "🚓 Polizei",
+        ambulanceService: "🚑 Krankenwagen",
+        fireService: "🔥 Feuerwehr",
+        calling: "📞 Anruf läuft",
+        locationNotAvailable: "Standort nicht verfügbar.",
+      },
+      ru: {
+        appHeader: "SOSit - Экстренная навигация",
+        quickSos: "🚨",
+        voiceSos: "🎙️ Голосовой SOS",
+        medicalInfo: "🧩 Медицинская информация",
+        toggleTheme: "🌗 Сменить тему",
+        findHospitals: "🏥 Найти больницы",
+        findPoliceStations: "🚓 Найти полицейские участки",
+        findFireStations: "🔥 Найти пожарные станции",
+        medicalModalTitle: "🧩 Мед. карта / Экстренная информация",
+        fullName: "Полное имя:",
+        dob: "Дата рождения:",
+        bloodGroup: "Группа крови:",
+        allergies: "Аллергии:",
+        medications: "Лекарства:",
+        conditions: "Заболевания:",
+        emergencyContact: "Контакт на случай ЧП:",
+        saveInfo: "💾 Сохранить инфо",
+        infoSaved: "✅ Информация сохранена локально!",
+        sosModalTitle: "🚨 Выберите экстренную службу",
+        policeService: "🚓 Полиция",
+        ambulanceService: "🚑 Скорая помощь",
+        fireService: "🔥 Пожарная охрана",
+        calling: "📞 Звонок",
+        locationNotAvailable: "Местоположение недоступно.",
+      },
+      ar: {
+        appHeader: "SOSit - الملاحة في حالات الطوارئ",
+        quickSos: "🚨",
+        voiceSos: "🎙️ SOS صوتي",
+        medicalInfo: "🧩 معلومات طبية",
+        toggleTheme: "🌗 تبديل الوضع",
+        findHospitals: "🏥 البحث عن المستشفيات",
+        findPoliceStations: "🚓 البحث عن مراكز الشرطة",
+        findFireStations: "🔥 البحث عن محطات الإطفاء",
+        medicalModalTitle: "🧩 الهوية الطبية / معلومات الطوارئ",
+        fullName: "الاسم الكامل:",
+        dob: "تاريخ الميلاد:",
+        bloodGroup: "فصيلة الدم:",
+        allergies: "الحساسية:",
+        medications: "الأدوية:",
+        conditions: "الحالات الطبية:",
+        emergencyContact: "جهة الاتصال في حالات الطوارئ:",
+        saveInfo: "💾 حفظ المعلومات",
+        infoSaved: "✅ تم حفظ المعلومات محلياً!",
+        sosModalTitle: "🚨 اختر خدمة الطوارئ",
+        policeService: "🚓 الشرطة",
+        ambulanceService: "🚑 الإسعاف",
+        fireService: "🔥 الإطفاء",
+        calling: "📞 جاري الاتصال",
+        locationNotAvailable: "الموقع غير متاح.",
+      },
+      ja: {
+        appHeader: "SOSit - 緊急ナビゲーション",
+        quickSos: "🚨",
+        voiceSos: "🎙️ 音声SOS",
+        medicalInfo: "🧩 医療情報",
+        toggleTheme: "🌗 テーマ切り替え",
+        findHospitals: "🏥 病院を探す",
+        findPoliceStations: "🚓 警察署を探す",
+        findFireStations: "🔥 消防署を探す",
+        medicalModalTitle: "🧩 医療ID / 緊急情報",
+        fullName: "フルネーム:",
+        dob: "生年月日:",
+        bloodGroup: "血液型:",
+        allergies: "アレルギー:",
+        medications: "投薬:",
+        conditions: "病状:",
+        emergencyContact: "緊急連絡先:",
+        saveInfo: "💾 情報を保存",
+        infoSaved: "✅ 情報はローカルに保存されました！",
+        sosModalTitle: "🚨 緊急サービスを選択",
+        policeService: "🚓 警察",
+        ambulanceService: "🚑 救急車",
+        fireService: "🔥 消防",
+        calling: "📞 電話をかけています",
+        locationNotAvailable: "場所が利用できません。",
+      },
+      zh: {
+        appHeader: "SOSit - 紧急导航",
+        quickSos: "🚨",
+        voiceSos: "🎙️ 语音SOS",
+        medicalInfo: "🧩 医疗信息",
+        toggleTheme: "🌗 切换主题",
+        findHospitals: "🏥 查找医院",
+        findPoliceStations: "🚓 查找警察局",
+        findFireStations: "🔥 查找消防局",
+        medicalModalTitle: "🧩 医疗ID / 紧急信息",
+        fullName: "全名:",
+        dob: "出生日期:",
+        bloodGroup: "血型:",
+        allergies: "过敏:",
+        medications: "药物:",
+        conditions: "医疗状况:",
+        emergencyContact: "紧急联系人:",
+        saveInfo: "💾 保存信息",
+        infoSaved: "✅ 信息已本地保存！",
+        sosModalTitle: "🚨 选择紧急服务",
+        policeService: "🚓 警察",
+        ambulanceService: "🚑 救护车",
+        fireService: "🔥 消防队",
+        calling: "📞 正在呼叫",
+        locationNotAvailable: "位置不可用。",
       },
     };
 
