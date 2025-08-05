@@ -1,26 +1,651 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Load Pages in iframe</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SOSit - Emergency Navigation</title>
+  <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/maps/maps-web.min.js"></script>
+  <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/services/services-web.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <link rel="stylesheet" href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/maps/maps.css"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      color: #111;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .dark-mode {
+      background-color: #121212;
+      color: #f4f4f4;
+    }
+    header {
+      background-color: #d32f2f;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 2em;
+      font-weight: bold;
+    }
+    #sidebar-toggle {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: #d32f2f;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 290px;
+      height: 100%;
+      overflow-y: auto;
+      background-color: #fff;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 999;
+    }
+    .dark-mode #sidebar {
+      background-color: #1e1e1e;
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
+    #sidebar h3 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+    #quick-sos {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      font-size: 1.5em;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: blink 1.5s infinite;
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 15px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 15px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #d32f2f;
+      color: white;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #b71c1c;
+    }
+    #map-container {
+      padding: 20px;
+    }
+    #map {
+      width: 100%;
+      height: 80vh;
+      border-radius: 10px;
+      border: 2px solid #ccc;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .sos-box {
+      background-color: #d32f2f;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .sos-box input[type="checkbox"] {
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+    .sos-box select {
+      flex-grow: 1;
+      padding: 5px;
+      border-radius: 5px;
+      border: none;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    .sos-box select option {
+        background-color: #d32f2f;
+        color: white;
+    }
+    .sidebar-footer {
+      margin-top: 380px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 90%;
+      position: relative;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+    .dark-mode .modal-content {
+      background-color: #1e1e1e;
+      color: white;
+    }
+    .close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #d32f2f;
+      cursor: pointer;
+    }
+    .modal-content label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .modal-content input,
+    .modal-content textarea {
+      width: 100%;
+      padding: 6px;
+      margin-top: 4px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    .modal-content button {
+      background-color: #388e3c;
+      width: 100%;
+      margin-top: 15px;
+    }
+    .modal-content button:hover {
+      background-color: #2e7d32;
+    }
+    #saved-message {
+      text-align: center;
+      color: green;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    @keyframes blink {
+      0% { background-color: #d32f2f; }
+      50% { background-color: #1E88E5; }
+      100% { background-color: #d32f2f; }
+    }
+  </style>
 </head>
 <body>
-  <h1>Open Sites in Page</h1>
-
-  <select onchange="loadInIframe(this.value)">
-    <option value="">-- Select a Website --</option>
-    <option value="https://example.com">Example.com</option>
-    <option value="https://wikipedia.org">Wikipedia</option>
-    <option value="https://openai.com">OpenAI</option>
-  </select>
-
-  <br><br>
-  <iframe id="webframe" width="100%" height="600px"></iframe>
-
+  <button id="sidebar-toggle">☰</button>
+  <div id="sidebar">
+    <h3>
+      ㅤㅤㅤㅤㅤㅤㅤ
+    </h3>
+    <div class="sos-box">
+      <label for="languageSelect">🌐 Language:</label>
+      <select id="languageSelect">
+        <option value="en">English</option>
+        <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+        <option value="hi">हिन्दी (Hindi)</option>
+        <option value="bn">বাংলা (Bengali)</option>
+        <option value="ta">தமிழ் (Tamil)</option>
+      </select>
+    </div>
+    <label class="sos-box">
+      <input type="checkbox" id="voiceToggle" /> 🎙️ Voice SOS
+    </label>
+    <div class="sos-box" id="medicalBtn">🧩 Medical Info</div>
+    <div class="sidebar-footer">
+      <label class="sos-box">
+        <input type="checkbox" id="themeToggle" /> 🌗 Toggle Theme
+      </label>
+    </div>
+  </div>
+  <header id="appHeader">SOSit - Emergency Navigation</header>
+  <div id="controls">
+    <button id="hospitalBtn" onclick="searchNearby('hospital')">🏥 Find Hospitals</button>
+    <button id="policeBtn" onclick="searchNearby('police station')">🚓 Find Police Stations</button>
+    <button id="fireBtn" onclick="searchNearby('fire station')">🔥 Find Fire Stations</button>
+  </div>
+  <div id="map-container">
+    <div id="map"></div>
+  </div>
+  <button id="quick-sos">🚨</button>
+  <div id="medicalModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeModal">&times;</span>
+      <h3 id="medicalModalTitle">🧩 Medical ID / Emergency Info</h3>
+      <form id="medicalForm">
+        <label for="fullName" data-i18n="fullName">Full Name:</label>
+        <input type="text" id="fullName" required>
+        <label for="dob" data-i18n="dob">Date of Birth:</label>
+        <input type="date" id="dob" required>
+        <label for="bloodGroup" data-i18n="bloodGroup">Blood Group:</label>
+        <input type="text" id="bloodGroup" required>
+        <label for="allergies" data-i18n="allergies">Allergies:</label>
+        <textarea id="allergies" rows="2"></textarea>
+        <label for="medications" data-i18n="medications">Medications:</label>
+        <textarea id="medications" rows="2"></textarea>
+        <label for="conditions" data-i18n="conditions">Medical Conditions:</label>
+        <textarea id="conditions" rows="2"></textarea>
+        <label for="emergencyContact" data-i18n="emergencyContact">Emergency Contact:</label>
+        <textarea id="emergencyContact" rows="2" required></textarea>
+        <button type="submit" id="saveMedicalBtn">💾 Save Info</button>
+        <div id="saved-message"></div>
+      </form>
+    </div>
+  </div>
+  <div id="sosOptionsModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeSosModal">&times;</span>
+      <h3 id="sosModalTitle">🚨 Choose Emergency Service</h3>
+      <button onclick="handleEmergency('Police', '100')" data-i18n="policeService">🚓 Police</button>
+      <button onclick="handleEmergency('Ambulance', '102')" data-i18n="ambulanceService">🚑 Ambulance</button>
+      <button onclick="handleEmergency('Fire Brigade', '101')" data-i18n="fireService">🔥 Fire Brigade</button>
+    </div>
+  </div>
   <script>
-    function loadInIframe(url) {
-      document.getElementById('webframe').src = url;
+    const apiKey = '9UgRJVBruTzjmNeO6gZrSB2loxP9ogDG';
+    let map, userLocation, routeLayer;
+    let poiMarkers = [];
+
+    const translations = {
+      en: {
+        appHeader: "SOSit - Emergency Navigation",
+        quickSos: "🚨", // Button now just shows the icon
+        voiceSos: "🎙️ Voice SOS",
+        medicalInfo: "🧩 Medical Info",
+        toggleTheme: "🌗 Toggle Theme",
+        findHospitals: "🏥 Find Hospitals",
+        findPoliceStations: "🚓 Find Police Stations",
+        findFireStations: "🔥 Find Fire Stations",
+        medicalModalTitle: "🧩 Medical ID / Emergency Info",
+        fullName: "Full Name:",
+        dob: "Date of Birth:",
+        bloodGroup: "Blood Group:",
+        allergies: "Allergies:",
+        medications: "Medications:",
+        conditions: "Medical Conditions:",
+        emergencyContact: "Emergency Contact:",
+        saveInfo: "💾 Save Info",
+        infoSaved: "✅ Information Saved Locally!",
+        sosModalTitle: "🚨 Choose Emergency Service",
+        policeService: "🚓 Police",
+        ambulanceService: "🚑 Ambulance",
+        fireService: "🔥 Fire Brigade",
+        calling: "📞 Calling",
+        locationNotAvailable: "Location not available.",
+      },
+      pa: {
+        appHeader: "SOSit - ਐਮਰਜੈਂਸੀ ਨੈਵੀਗੇਸ਼ਨ",
+        quickSos: "🚨",
+        voiceSos: "🎙️ ਵੌਇਸ SOS",
+        medicalInfo: "🧩 ਮੈਡੀਕਲ ਜਾਣਕਾਰੀ",
+        toggleTheme: "🌗 ਥੀਮ ਬਦਲੋ",
+        findHospitals: "🏥 ਹਸਪਤਾਲ ਲੱਭੋ",
+        findPoliceStations: "🚓 ਪੁਲਿਸ ਸਟੇਸ਼ਨ ਲੱਭੋ",
+        findFireStations: "🔥 ਫਾਇਰ ਸਟੇਸ਼ਨ ਲੱਭੋ",
+        medicalModalTitle: "🧩 ਮੈਡੀਕਲ ID / ਐਮਰਜੈਂਸੀ ਜਾਣਕਾਰੀ",
+        fullName: "ਪੂਰਾ ਨਾਮ:",
+        dob: "ਜਨਮ ਮਿਤੀ:",
+        bloodGroup: "ਖੂਨ ਗਰੁੱਪ:",
+        allergies: "ਐਲਰਜੀ:",
+        medications: "ਦਵਾਈਆਂ:",
+        conditions: "ਮੈਡੀਕਲ ਹਾਲਤਾਂ:",
+        emergencyContact: "ਐਮਰਜੈਂਸੀ ਸੰਪਰਕ:",
+        saveInfo: "💾 ਜਾਣਕਾਰੀ ਸੇਵ ਕਰੋ",
+        infoSaved: "✅ ਜਾਣਕਾਰੀ ਸਥਾਨਕ ਤੌਰ 'ਤੇ ਸੇਵ ਕੀਤੀ ਗਈ ਹੈ!",
+        sosModalTitle: "🚨 ਐਮਰਜੈਂਸੀ ਸੇਵਾ ਚੁਣੋ",
+        policeService: "🚓 ਪੁਲਿਸ",
+        ambulanceService: "🚑 ਐਂਬੂਲੈਂਸ",
+        fireService: "🔥 ਫਾਇਰ ਬ੍ਰਿਗੇਡ",
+        calling: "📞 ਕਾਲ ਕਰ ਰਿਹਾ ਹੈ",
+        locationNotAvailable: "ਟਿਕਾਣਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।",
+      },
+      hi: {
+        appHeader: "SOSit - आपातकालीन नेविगेशन",
+        quickSos: "🚨",
+        voiceSos: "🎙️ वॉयस SOS",
+        medicalInfo: "🧩 चिकित्सा जानकारी",
+        toggleTheme: "🌗 थीम टॉगल करें",
+        findHospitals: "🏥 अस्पताल खोजें",
+        findPoliceStations: "🚓 पुलिस स्टेशन खोजें",
+        findFireStations: "🔥 फायर स्टेशन खोजें",
+        medicalModalTitle: "🧩 मेडिकल ID / आपातकालीन जानकारी",
+        fullName: "पूरा नाम:",
+        dob: "जन्म की तारीख:",
+        bloodGroup: "रक्त समूह:",
+        allergies: "एलर्जी:",
+        medications: "दवाएं:",
+        conditions: "चिकित्सा स्थितियाँ:",
+        emergencyContact: "आपातकालीन संपर्क:",
+        saveInfo: "💾 जानकारी सहेजें",
+        infoSaved: "✅ जानकारी स्थानीय रूप से सहेजी गई है!",
+        sosModalTitle: "🚨 आपातकालीन सेवा चुनें",
+        policeService: "🚓 पुलिस",
+        ambulanceService: "🚑 एम्बुलेंस",
+        fireService: "🔥 फायर ब्रिगेड",
+        calling: "📞 कॉल कर रहा है",
+        locationNotAvailable: "स्थान उपलब्ध नहीं है।",
+      },
+      bn: {
+        appHeader: "SOSit - জরুরি নেভিগেশন",
+        quickSos: "🚨",
+        voiceSos: "🎙️ ভয়েস SOS",
+        medicalInfo: "🧩 চিকিৎসা তথ্য",
+        toggleTheme: "🌗 থিম টগল করুন",
+        findHospitals: "🏥 হাসপাতাল খুঁজুন",
+        findPoliceStations: "🚓 পুলিশ স্টেশন খুঁজুন",
+        findFireStations: "🔥 ফায়ার স্টেশন খুঁজুন",
+        medicalModalTitle: "🧩 মেডিকেল আইডি / জরুরি তথ্য",
+        fullName: "পূর্ণ নাম:",
+        dob: "জন্ম তারিখ:",
+        bloodGroup: "রক্তের গ্রুপ:",
+        allergies: "অ্যালার্জি:",
+        medications: "ওষুধ:",
+        conditions: "চিকিৎসা অবস্থা:",
+        emergencyContact: "জরুরি যোগাযোগ:",
+        saveInfo: "💾 তথ্য সংরক্ষণ করুন",
+        infoSaved: "✅ তথ্য স্থানীয়ভাবে সংরক্ষিত হয়েছে!",
+        sosModalTitle: "🚨 জরুরি পরিষেবা নির্বাচন করুন",
+        policeService: "🚓 পুলিশ",
+        ambulanceService: "🚑 অ্যাম্বুলেন্স",
+        fireService: "🔥 ফায়ার ব্রিগেড",
+        calling: "📞 কল করা হচ্ছে",
+        locationNotAvailable: "অবস্থান উপলব্ধ নেই।",
+      },
+      ta: {
+        appHeader: "SOSit - அவசர வழிசெலுத்தல்",
+        quickSos: "🚨",
+        voiceSos: "🎙️ குரல் SOS",
+        medicalInfo: "🧩 மருத்துவத் தகவல்",
+        toggleTheme: "🌗 தீம் மாற்று",
+        findHospitals: "🏥 மருத்துவமனைகளைக் கண்டுபிடி",
+        findPoliceStations: "🚓 காவல் நிலையங்களைக் கண்டுபிடி",
+        findFireStations: "🔥 தீயணைப்பு நிலையங்களைக் கண்டுபிடி",
+        medicalModalTitle: "🧩 மருத்துவ ID / அவசரத் தகவல்",
+        fullName: "முழுப் பெயர்:",
+        dob: "பிறந்த தேதி:",
+        bloodGroup: "இரத்தக் குழு:",
+        allergies: "ஒவ்வாமை:",
+        medications: "மருந்துகள்:",
+        conditions: "மருத்துவ நிலைமைகள்:",
+        emergencyContact: "அவசர தொடர்பு:",
+        saveInfo: "💾 தகவலைச் சேமி",
+        infoSaved: "✅ தகவல் உள்ளூரில் சேமிக்கப்பட்டது!",
+        sosModalTitle: "🚨 அவசர சேவையைத் தேர்வு செய்யவும்",
+        policeService: "🚓 காவல்துறை",
+        ambulanceService: "🚑 ஆம்புலன்ஸ்",
+        fireService: "🔥 தீயணைப்புப் படை",
+        calling: "📞 அழைக்கிறது",
+        locationNotAvailable: "இடம் கிடைக்கவில்லை.",
+      },
+    };
+
+    function setLanguage(lang) {
+      const t = translations[lang];
+      if (!t) return;
+
+      document.getElementById('appHeader').innerText = t.appHeader;
+      document.getElementById('quick-sos').innerText = t.quickSos;
+      document.getElementById('voiceToggle').parentElement.lastChild.nodeValue = ` ${t.voiceSos}`;
+      document.getElementById('medicalBtn').innerText = t.medicalInfo;
+      document.getElementById('themeToggle').parentElement.lastChild.nodeValue = ` ${t.toggleTheme}`;
+      document.getElementById('hospitalBtn').innerText = t.findHospitals;
+      document.getElementById('policeBtn').innerText = t.findPoliceStations;
+      document.getElementById('fireBtn').innerText = t.findFireStations;
+      
+      // Medical Modal
+      document.getElementById('medicalModalTitle').innerText = t.medicalModalTitle;
+      document.querySelector('label[for="fullName"]').innerText = t.fullName;
+      document.querySelector('label[for="dob"]').innerText = t.dob;
+      document.querySelector('label[for="bloodGroup"]').innerText = t.bloodGroup;
+      document.querySelector('label[for="allergies"]').innerText = t.allergies;
+      document.querySelector('label[for="medications"]').innerText = t.medications;
+      document.querySelector('label[for="conditions"]').innerText = t.conditions;
+      document.querySelector('label[for="emergencyContact"]').innerText = t.emergencyContact;
+      document.getElementById('saveMedicalBtn').innerText = t.saveInfo;
+      
+      // SOS Modal
+      document.getElementById('sosModalTitle').innerText = t.sosModalTitle;
+      document.querySelector('#sosOptionsModal button:nth-of-type(1)').innerText = t.policeService;
+      document.querySelector('#sosOptionsModal button:nth-of-type(2)').innerText = t.ambulanceService;
+      document.querySelector('#sosOptionsModal button:nth-of-type(3)').innerText = t.fireService;
     }
+
+    document.getElementById("languageSelect").addEventListener("change", (e) => {
+      setLanguage(e.target.value);
+    });
+
+    // Initial language setup on page load
+    setLanguage('en');
+
+    function initMap() {
+      navigator.geolocation.getCurrentPosition(position => {
+        userLocation = [position.coords.longitude, position.coords.latitude];
+        map = tt.map({
+          key: apiKey,
+          container: 'map',
+          center: userLocation,
+          zoom: 15
+        });
+        map.addControl(new tt.NavigationControl());
+        new tt.Marker().setLngLat(userLocation).addTo(map);
+
+        map.on('click', function (e) {
+          const destination = [e.lngLat.lng, e.lngLat.lat];
+          drawRouteTo(destination, true);
+        });
+      });
+    }
+
+    function searchNearby(query) {
+      if (!userLocation) return alert(translations[document.getElementById('languageSelect').value].locationNotAvailable);
+      poiMarkers.forEach(m => m.remove());
+      poiMarkers = [];
+      const [lon, lat] = userLocation;
+      fetch(`https://api.tomtom.com/search/2/poiSearch/${query}.json?key=${apiKey}&lat=${lat}&lon=${lon}&radius=10000`)
+        .then(res => res.json())
+        .then(data => {
+          data.results.forEach(poi => {
+            const marker = new tt.Marker().setLngLat([poi.position.lon, poi.position.lat]).addTo(map);
+            poiMarkers.push(marker);
+            marker.getElement().addEventListener('click', () => drawRouteTo([poi.position.lon, poi.position.lat], true));
+          });
+        });
+    }
+
+    function drawRouteTo(destination, showPopup = false) {
+      if (routeLayer) {
+        map.removeLayer('route');
+        map.removeSource('route');
+      }
+      tt.services.calculateRoute({
+        key: apiKey,
+        locations: [userLocation, destination]
+      }).then(response => {
+        const geojson = {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: response.routes[0].legs[0].points.map(p => [p.longitude, p.latitude])
+          }
+        };
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: { type: 'geojson', data: geojson },
+          paint: { 'line-color': '#1E88E5', 'line-width': 5 }
+        });
+        routeLayer = 'route';
+
+        if (showPopup) {
+          const summary = response.routes[0].summary;
+          const minutes = Math.round(summary.travelTimeInSeconds / 60);
+          const distance = (summary.lengthInMeters / 1000).toFixed(2);
+          new tt.Popup({ offset: 35 })
+            .setLngLat(destination)
+            .setHTML(`<strong>🚗 Route Info:</strong><br>🕒 ${minutes} mins<br>📏 ${distance} km`)
+            .addTo(map);
+        }
+      });
+    }
+
+    initMap();
+
+    document.getElementById("sidebar-toggle").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.toggle("open");
+    });
+
+    document.getElementById("themeToggle").addEventListener("change", (e) => {
+      document.body.classList.toggle("dark-mode", e.target.checked);
+    });
+
+    const sosModal = document.getElementById("sosOptionsModal");
+    const closeSosModal = document.getElementById("closeSosModal");
+    document.getElementById("quick-sos").addEventListener("click", () => {
+      sosModal.style.display = "flex";
+    });
+    closeSosModal.onclick = () => sosModal.style.display = "none";
+    window.onclick = (e) => {
+      if (e.target == sosModal) sosModal.style.display = "none";
+    };
+
+    function handleEmergency(serviceName, phoneNumber) {
+      if (!userLocation) return alert(translations[document.getElementById('languageSelect').value].locationNotAvailable);
+      fetch(`https://api.tomtom.com/search/2/reverseGeocode/${userLocation[1]},${userLocation[0]}.json?key=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+          const address = data.addresses[0]?.address?.freeformAddress || 'Unknown location';
+          emailjs.send("service_s929gsa", "template_9jxocji", {
+            to_name: "Admin",
+            from_name: "SOSit App",
+            message: `🚨 Emergency Alert!\n\nService: ${serviceName}\nLocation:\n${address}\nLat: ${userLocation[1]}, Lon: ${userLocation[0]}`,
+            reply_to: "aryansharvb@gmail.com"
+          });
+          alert(`${translations[document.getElementById('languageSelect').value].calling} ${serviceName}...`);
+          window.location.href = `tel:${phoneNumber}`;
+          sosModal.style.display = "none";
+        });
+    }
+
+    const voiceToggle = document.getElementById("voiceToggle");
+    let recognition;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      voiceToggle.addEventListener("change", () => {
+        if (voiceToggle.checked) recognition.start();
+        else recognition.stop();
+      });
+
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            const transcript = event.results[i][0].transcript.toLowerCase();
+            if (transcript.includes("sos") || transcript.includes("help") || transcript.includes("emergency")) {
+              document.getElementById("quick-sos").click();
+            }
+          }
+        }
+      };
+    } else {
+      voiceToggle.disabled = true;
+      voiceToggle.parentElement.innerHTML += " <small>(Not supported)</small>";
+    }
+
+    const modal = document.getElementById("medicalModal");
+    const openBtn = document.getElementById("medicalBtn");
+    const closeBtn = document.getElementById("closeModal");
+
+    openBtn.onclick = () => modal.style.display = "flex";
+    closeBtn.onclick = () => modal.style.display = "none";
+    window.onclick = (e) => {
+      if (e.target == modal) modal.style.display = "none";
+    };
+
+    window.onload = function () {
+      const fields = ['fullName', 'dob', 'bloodGroup', 'allergies', 'medications', 'conditions', 'emergencyContact'];
+      fields.forEach(id => {
+        const saved = localStorage.getItem(id);
+        if (saved) document.getElementById(id).value = saved;
+      });
+    };
+    document.getElementById("medicalForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const fields = ['fullName', 'dob', 'bloodGroup', 'allergies', 'medications', 'conditions', 'emergencyContact'];
+      fields.forEach(id => {
+        localStorage.setItem(id, document.getElementById(id).value);
+      });
+      document.getElementById("saved-message").innerText = translations[document.getElementById('languageSelect').value].infoSaved;
+    });
+
+    emailjs.init("9hAEAXdy5k9az18rX");
+  </script>
+  <script>
+    (function () {
+      if (!window.chatbase || window.chatbase("getState") !== "initialized") {
+        window.chatbase = (...args) => {
+          if (!window.chatbase.q) window.chatbase.q = [];
+          window.chatbase.q.push(args);
+        };
+        window.chatbase = new Proxy(window.chatbase, {
+          get(target, prop) {
+            if (prop === "q") return target.q;
+            return (...args) => target(prop, ...args);
+          }
+        });
+      }
+      const onLoad = function () {
+        const script = document.createElement("script");
+        script.src = "https://www.chatbase.co/embed.min.js";
+        script.id = "-yLmCyXA4m_V1pQd17blW";
+        script.domain = "www.chatbase.co";
+        document.body.appendChild(script);
+      };
+      if (document.readyState === "complete") onLoad();
+      else window.addEventListener("load", onLoad);
+    })();
   </script>
 </body>
 </html>
