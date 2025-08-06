@@ -1003,7 +1003,7 @@
 
                 // Send to Contact 1 if email exists
                 if (contact1Email) {
-                    emailjs.send("service_63a5704", "template_j0k6xbg", { // REPLACE THESE IDs
+                    emailjs.send("service_s929gsa", "template_9jxocji", { // REPLACE THESE IDs
                         to_name: contact1Name,
                         from_name: "SOSit App",
                         to_email: contact1Email,
@@ -1018,7 +1018,7 @@
 
                 // Send to Contact 2 if email exists
                 if (contact2Email) {
-                    emailjs.send("service_63a5704", "template_j0k6xbg", { // REPLACE THESE IDs
+                    emailjs.send("service_s929gsa", "template_9jxocji", { // REPLACE THESE IDs
                         to_name: contact2Name,
                         from_name: "SOSit App",
                         to_email: contact2Email,
@@ -1038,7 +1038,7 @@
                 let message = `🚨 Live Location Alert from SOSit!\n\nI've activated 'Safe Me'.\n\nMy current location coordinates are:\nLat: ${userLocation[1]}, Lon: ${userLocation[0]}\n\nView on Map: ${locationLink}\n\nThis alert will be sent periodically.`;
 
                 if (contact1Email) {
-                    emailjs.send("service_63a5704", "template_j0k6xbg", {
+                    emailjs.send("service_s929gsa", "template_9jxocji", {
                         to_name: contact1Name,
                         from_name: "SOSit App",
                         to_email: contact1Email,
@@ -1047,7 +1047,7 @@
                     });
                 }
                 if (contact2Email) {
-                    emailjs.send("service_63a5704", "template_j0k6xbg", {
+                    emailjs.send("service_s929gsa", "template_9jxocji", {
                         to_name: contact2Name,
                         from_name: "SOSit App",
                         to_email: contact2Email,
@@ -1070,7 +1070,7 @@
       if (e.target == contactsModal) contactsModal.style.display = "none"; // Add this line
     };
 
-    emailjs.init("matE3Mi_vCMWr5jC5"); // Your existing EmailJS user ID
+    emailjs.init("jIeKH_a-eVdrTVNGA"); // Your existing EmailJS user ID
   </script>
   <script>
     (function () {
