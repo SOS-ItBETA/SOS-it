@@ -1,1 +1,1176 @@
 
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SOSit - Emergency Navigation</title>
+<script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/maps/maps-web.min.js"></script>
+<script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/services/services-web.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<link href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.18.0/maps/maps.css" rel="stylesheet"/>
+<style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f4;
+      color: #111;
+      transition: background-color 0.3s, color 0.3s;
+      position: relative;
+      min-height: 100vh;
+    }
+    .dark-mode {
+      background-color: #121212;
+      color: #f4f4f4;
+    }
+    header {
+      background-color: #d32f2f;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 2em;
+      font-weight: bold;
+    }
+    #sidebar-toggle {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: #d32f2f;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 290px;
+      height: 100%;
+      overflow-y: auto;
+      background-color: #fff;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 999;
+    }
+    .dark-mode #sidebar {
+      background-color: #1e1e1e;
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
+    #sidebar h3 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+    #quick-sos {
+      position: fixed;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1002;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      font-size: 1.5em;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: blink 1.5s infinite;
+      border: 5px solid transparent;
+    }
+    #quick-sos::after {
+      content: '';
+      position: fixed;
+      bottom: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200vw;
+      height: 150px;
+      border-radius: 50%;
+      background-image: radial-gradient(circle, rgba(255, 0, 0, 0.5) 0%, rgba(255, 0, 0, 0) 70%);
+      animation: glowing-background 2s infinite;
+      z-index: 1001;
+      box-shadow: 0 0 30px #d32f2f;
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 15px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 15px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #d32f2f;
+      color: white;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #b71c1c;
+    }
+    #map-container {
+      padding: 20px;
+    }
+    #map {
+      width: 100%;
+      height: 80vh;
+      border-radius: 10px;
+      border: 2px solid #ccc;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .sos-box {
+      background-color: #d32f2f;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .sos-box input[type="checkbox"] {
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+    .sos-box select {
+      flex-grow: 1;
+      padding: 5px;
+      border-radius: 5px;
+      border: none;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    .sos-box select option {
+      background-color: #d32f2f;
+      color: white;
+    }
+    .sidebar-footer {
+      margin-top: 330px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 90%;
+      position: relative;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+    .dark-mode .modal-content {
+      background-color: #1e1e1e;
+      color: white;
+    }
+    .close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #d32f2f;
+      cursor: pointer;
+    }
+    .modal-content label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .modal-content input,
+    .modal-content textarea {
+      width: 100%;
+      padding: 6px;
+      margin-top: 4px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    .modal-content button {
+      background-color: #388e3c;
+      width: 100%;
+      margin-top: 15px;
+    }
+    .modal-content button:hover {
+      background-color: #2e7d32;
+    }
+    #saved-message {
+      text-align: center;
+      color: green;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    @keyframes blink {
+      0% { background-color: #d32f2f; }
+      50% { background-color: #1E88E5; }
+      100% { background-color: #d32f2f; }
+    }
+    @keyframes glowing-background {
+      0% {
+        background-image: radial-gradient(circle, rgba(211, 47, 47, 0.6) 0%, rgba(211, 47, 47, 0) 70%);
+        box-shadow: 0 0 30px #d32f2f;
+      }
+      50% {
+        background-image: radial-gradient(circle, rgba(30, 136, 229, 0.6) 0%, rgba(30, 136, 229, 0) 70%);
+        box-shadow: 0 0 30px #1E88E5;
+      }
+      100% {
+        background-image: radial-gradient(circle, rgba(211, 47, 47, 0.6) 0%, rgba(211, 47, 47, 0) 70%);
+        box-shadow: 0 0 30px #d32f2f;
+      }
+    }
+  </style>
+</head>
+<body>
+<button id="sidebar-toggle">☰</button>
+<div id="sidebar">
+<h3>
+      ㅤㅤㅤㅤㅤㅤㅤ
+    </h3>
+<div class="sos-box">
+<label for="languageSelect">🌐 Language:</label>
+<select id="languageSelect">
+<option value="en">English</option>
+<option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+<option value="hi">हिन्दी (Hindi)</option>
+<option value="bn">বাংলা (Bengali)</option>
+<option value="ta">தமிழ் (Tamil)</option>
+<option value="es">Español (Spanish)</option>
+<option value="fr">Français (French)</option>
+<option value="de">Deutsch (German)</option>
+<option value="ru">Русский (Russian)</option>
+<option value="ar">العربية (Arabic)</option>
+<option value="ja">日本語 (Japanese)</option>
+<option value="zh">中文 (Chinese)</option>
+</select>
+</div>
+<label class="sos-box">
+<input id="voiceToggle" type="checkbox"/> 🎙️ Voice SOS
+    </label>
+<div class="sos-box" id="medicalBtn">🧩 Medical Info</div>
+<div class="sos-box" id="safeMeBtn">📍 Safe Me</div>
+
+<div class="sidebar-footer">
+<label class="sos-box">
+<input id="themeToggle" type="checkbox"/> 🌗 Toggle Theme
+      </label>
+</div>
+</div>
+<header id="appHeader">SOSit - Emergency Navigation</header>
+<div id="controls">
+<button id="hospitalBtn" onclick="searchNearby('hospital')">🏥 Find Hospitals</button>
+<button id="policeBtn" onclick="searchNearby('police station')">🚓 Find Police Stations</button>
+<button id="fireBtn" onclick="searchNearby('fire station')">🔥 Find Fire Stations</button>
+</div>
+<div id="map-container">
+<div id="map"></div>
+</div>
+<button id="quick-sos">🚨</button>
+<div class="modal" id="contactsModal">
+<div class="modal-content">
+<span class="close" id="closeContactsModal">×</span>
+<h3 id="contactsModalTitle">📞 Emergency Contacts</h3>
+<form id="contactsForm">
+<label for="contact1Name">Contact 1 Name:</label>
+<input id="contact1Name" type="text"/>
+<label for="contact1Email">Contact 1 Email:</label>
+<input id="contact1Email" type="email"/>
+<label for="contact2Name" style="margin-top: 15px;">Contact 2 Name:</label>
+<input id="contact2Name" type="text"/>
+<label for="contact2Email">Contact 2 Email:</label>
+<input id="contact2Email" type="email"/>
+<button id="saveContactsBtn" type="submit">💾 Save Contacts</button>
+<div id="contacts-saved-message"></div>
+</form>
+</div>
+</div>
+<div class="modal" id="medicalModal">
+<div class="modal-content">
+<span class="close" id="closeModal">×</span>
+<h3 id="medicalModalTitle">🧩 Medical ID / Emergency Info</h3>
+<form id="medicalForm">
+<label data-i18n="fullName" for="fullName">Full Name:</label>
+<input id="fullName" required="" type="text"/>
+<label data-i18n="dob" for="dob">Date of Birth:</label>
+<input id="dob" required="" type="date"/>
+<label data-i18n="bloodGroup" for="bloodGroup">Blood Group:</label>
+<input id="bloodGroup" required="" type="text"/>
+<label data-i18n="allergies" for="allergies">Allergies:</label>
+<textarea id="allergies" rows="2"></textarea>
+<label data-i18n="medications" for="medications">Medications:</label>
+<textarea id="medications" rows="2"></textarea>
+<label data-i18n="conditions" for="conditions">Medical Conditions:</label>
+<textarea id="conditions" rows="2"></textarea>
+<label data-i18n="emergencyContact" for="emergencyContact">Emergency Contact:</label>
+<textarea id="emergencyContact" required="" rows="2"></textarea>
+<button id="saveMedicalBtn" type="submit">💾 Save Info</button>
+<div id="saved-message"></div>
+</form>
+</div>
+</div>
+<div class="modal" id="sosOptionsModal">
+<div class="modal-content">
+<span class="close" id="closeSosModal">×</span>
+<h3 id="sosModalTitle">🚨 Choose Emergency Service</h3>
+<button data-i18n="policeService" onclick="handleEmergency('Police', '100')">🚓 Police</button>
+<button data-i18n="ambulanceService" onclick="handleEmergency('Ambulance', '102')">🚑 Ambulance</button>
+<button data-i18n="fireService" onclick="handleEmergency('Fire Brigade', '101')">🔥 Fire Brigade</button>
+</div>
+</div>
+<script>
+    const apiKey = '9UgRJVBruTzjmNeO6gZrSB2loxP9ogDG';
+    let map, userLocation, routeLayer;
+    let poiMarkers = [];
+
+    const safeMeBtn = document.getElementById("safeMeBtn");
+    const contactsModal = document.getElementById("contactsModal");
+    const closeContactsModal = document.getElementById("closeContactsModal");
+    const contactsForm = document.getElementById("contactsForm");
+    const contactsSavedMessage = document.getElementById("contacts-saved-message");
+
+    let safeMeIntervalId;
+    let isSafeMeActive = false;
+
+    // Translations for different languages
+    const translations = {
+      en: {
+        appHeader: "SOSit - Emergency Navigation",
+        quickSos: "🚨",
+        voiceSos: "🎙️ Voice SOS",
+        medicalInfo: "🧩 Medical Info",
+        safeMe: "📍 Safe Me",
+        toggleTheme: "🌗 Toggle Theme",
+        findHospitals: "🏥 Find Hospitals",
+        findPoliceStations: "🚓 Find Police Stations",
+        findFireStations: "🔥 Find Fire Stations",
+        locationNotAvailable: "Unable to retrieve your location. Please enable location services.",
+        calling: "Calling",
+        infoSaved: "Medical info saved!",
+        contactsModalTitle: "📞 Emergency Contacts",
+        contactsSaved: "Emergency contacts saved!",
+        safeMeActivated: "'Safe Me' activated! Your location will be sent periodically.",
+        safeMeDeactivated: "'Safe Me' deactivated.",
+        fullName: "Full Name:",
+        dob: "Date of Birth:",
+        bloodGroup: "Blood Group:",
+        allergies: "Allergies:",
+        medications: "Medications:",
+        conditions: "Medical Conditions:",
+        emergencyContact: "Emergency Contact:",
+        saveInfo: "💾 Save Info",
+        sosModalTitle: "🚨 Choose Emergency Service",
+        policeService: "🚓 Police",
+        ambulanceService: "🚑 Ambulance",
+        fireService: "🔥 Fire Brigade",
+        contact1Name: "Contact 1 Name:",
+        contact1Email: "Contact 1 Email:",
+        contact2Name: "Contact 2 Name:",
+        contact2Email: "Contact 2 Email:",
+        saveContacts: "💾 Save Contacts",
+        },
+      pa: {
+        appHeader: "SOSit - ਐਮਰਜੈਂਸੀ ਨੈਵੀਗੇਸ਼ਨ",
+        quickSos: "🚨",
+        voiceSos: "🎙️ ਵੌਇਸ SOS",
+        medicalInfo: "🧩 ਮੈਡੀਕਲ ਜਾਣਕਾਰੀ",
+        safeMe: "📍 ਸੇਫ ਮੀ",
+        toggleTheme: "🌗 ਥੀਮ ਬਦਲੋ",
+        findHospitals: "🏥 ਹਸਪਤਾਲ ਲੱਭੋ",
+        findPoliceStations: "🚓 ਪੁਲਿਸ ਸਟੇਸ਼ਨ ਲੱਭੋ",
+        findFireStations: "🔥 ਫਾਇਰ ਸਟੇਸ਼ਨ ਲੱਭੋ",
+        locationNotAvailable: "ਤੁਹਾਡਾ ਟਿਕਾਣਾ ਨਹੀਂ ਲੱਭਿਆ ਜਾ ਸਕਦਾ। ਕਿਰਪਾ ਕਰਕੇ ਟਿਕਾਣਾ ਸੇਵਾਵਾਂ ਚਾਲੂ ਕਰੋ।",
+        calling: "ਕਾਲ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ",
+        infoSaved: "ਮੈਡੀਕਲ ਜਾਣਕਾਰੀ ਸੁਰੱਖਿਅਤ ਕੀਤੀ ਗਈ!",
+        contactsModalTitle: "📞 ਐਮਰਜੈਂਸੀ ਸੰਪਰਕ",
+        contactsSaved: "ਐਮਰਜੈਂਸੀ ਸੰਪਰਕ ਸੁਰੱਖਿਅਤ ਕੀਤੇ ਗਏ!",
+        safeMeActivated: "'ਸੇਫ ਮੀ' ਚਾਲੂ ਹੋ ਗਿਆ! ਤੁਹਾਡਾ ਟਿਕਾਣਾ ਸਮੇਂ-ਸਮੇਂ 'ਤੇ ਭੇਜਿਆ ਜਾਵੇਗਾ।",
+        safeMeDeactivated: "'ਸੇਫ ਮੀ' ਬੰਦ ਹੋ ਗਿਆ।",
+        fullName: "ਪੂਰਾ ਨਾਮ:",
+        dob: "ਜਨਮ ਮਿਤੀ:",
+        bloodGroup: "ਖੂਨ ਗਰੁੱਪ:",
+        allergies: "ਐਲਰਜੀ:",
+        medications: "ਦਵਾਈਆਂ:",
+        conditions: "ਮੈਡੀਕਲ ਸਥਿਤੀਆਂ:",
+        emergencyContact: "ਐਮਰਜੈਂਸੀ ਸੰਪਰਕ:",
+        saveInfo: "💾 ਜਾਣਕਾਰੀ ਸੁਰੱਖਿਅਤ ਕਰੋ",
+        sosModalTitle: "🚨 ਐਮਰਜੈਂਸੀ ਸੇਵਾ ਚੁਣੋ",
+        policeService: "🚓 ਪੁਲਿਸ",
+        ambulanceService: "🚑 ਐਂਬੂਲੈਂਸ",
+        fireService: "🔥 ਫਾਇਰ ਬ੍ਰਿਗੇਡ",
+        contact1Name: "ਸੰਪਰਕ 1 ਨਾਮ:",
+        contact1Email: "ਸੰਪਰਕ 1 ਈਮੇਲ:",
+        contact2Name: "ਸੰਪਰਕ 2 ਨਾਮ:",
+        contact2Email: "ਸੰਪਰਕ 2 ਈਮੇਲ:",
+        saveContacts: "💾 ਸੰਪਰਕ ਸੁਰੱਖਿਅਤ ਕਰੋ",
+        },
+      hi: {
+        appHeader: "SOSit - आपातकालीन नेविगेशन",
+        quickSos: "🚨",
+        voiceSos: "🎙️ वॉयस एसओएस",
+        medicalInfo: "🧩 मेडिकल जानकारी",
+        safeMe: "📍 सेफ मी",
+        toggleTheme: "🌗 थीम बदलें",
+        findHospitals: "🏥 अस्पताल खोजें",
+        findPoliceStations: "🚓 पुलिस स्टेशन खोजें",
+        findFireStations: "🔥 फायर स्टेशन खोजें",
+        locationNotAvailable: "आपका स्थान प्राप्त करने में असमर्थ। कृपया स्थान सेवाएं सक्षम करें।",
+        calling: "कॉल किया जा रहा है",
+        infoSaved: "चिकित्सा जानकारी सहेजी गई!",
+        contactsModalTitle: "📞 आपातकालीन संपर्क",
+        contactsSaved: "आपातकालीन संपर्क सहेजे गए!",
+        safeMeActivated: "'सेफ मी' सक्रिय हो गया! आपका स्थान समय-समय पर भेजा जाएगा।",
+        safeMeDeactivated: "'सेफ मी' निष्क्रिय हो गया।",
+        fullName: "पूरा नाम:",
+        dob: "जन्म तिथि:",
+        bloodGroup: "ब्लड ग्रुप:",
+        allergies: "एलर्जी:",
+        medications: "दवाएं:",
+        conditions: "चिकित्सा स्थितियां:",
+        emergencyContact: "आपातकालीन संपर्क:",
+        saveInfo: "💾 जानकारी सहेजें",
+        sosModalTitle: "🚨 आपातकालीन सेवा चुनें",
+        policeService: "🚓 पुलिस",
+        ambulanceService: "🚑 एम्बुलेंस",
+        fireService: "🔥 फायर ब्रिगेड",
+        contact1Name: "संपर्क 1 नाम:",
+        contact1Email: "संपर्क 1 ईमेल:",
+        contact2Name: "संपर्क 2 नाम:",
+        contact2Email: "संपर्क 2 ईमेल:",
+        saveContacts: "💾 संपर्क सहेजें",
+        },
+      bn: {
+        appHeader: "SOSit - জরুরী নেভিগেশন",
+        quickSos: "🚨",
+        voiceSos: "🎙️ ভয়েস এসওএস",
+        medicalInfo: "🧩 মেডিকেল তথ্য",
+        safeMe: "📍 সেফ মি",
+        toggleTheme: "🌗 থিম টগল করুন",
+        findHospitals: "🏥 হাসপাতাল খুঁজুন",
+        findPoliceStations: "🚓 পুলিশ স্টেশন খুঁজুন",
+        findFireStations: "🔥 ফায়ার স্টেশন খুঁজুন",
+        locationNotAvailable: "আপনার অবস্থান পুনরুদ্ধার করতে অক্ষম। দয়া করে অবস্থান পরিষেবাগুলি সক্ষম করুন।",
+        calling: "কল করা হচ্ছে",
+        infoSaved: "চিকিৎসা তথ্য সংরক্ষণ করা হয়েছে!",
+        contactsModalTitle: "📞 জরুরী যোগাযোগ",
+        contactsSaved: "জরুরী যোগাযোগ সংরক্ষিত হয়েছে!",
+        safeMeActivated: "'সেফ মি' সক্রিয় হয়েছে! আপনার অবস্থান পর্যায়ক্রমে পাঠানো হবে।",
+        safeMeDeactivated: "'সেফ মি' নিষ্ক্রিয় করা হয়েছে।",
+        fullName: "পুরো নাম:",
+        dob: "জন্ম তারিখ:",
+        bloodGroup: "রক্তের গ্রুপ:",
+        allergies: "অ্যালার্জি:",
+        medications: "ওষুধ:",
+        conditions: "চিকিৎসা অবস্থা:",
+        emergencyContact: "জরুরী যোগাযোগ:",
+        saveInfo: "💾 তথ্য সংরক্ষণ করুন",
+        sosModalTitle: "🚨 জরুরী পরিষেবা চয়ন করুন",
+        policeService: "🚓 পুলিশ",
+        ambulanceService: "🚑 অ্যাম্বুলেন্স",
+        fireService: "🔥 ফায়ার ব্রিগেড",
+        contact1Name: "যোগাযোগ 1 নাম:",
+        contact1Email: "যোগাযোগ 1 ইমেল:",
+        contact2Name: "যোগাযোগ 2 নাম:",
+        contact2Email: "যোগাযোগ 2 ইমেল:",
+        saveContacts: "💾 যোগাযোগ সংরক্ষণ করুন",
+        },
+      ta: {
+        appHeader: "SOSit - அவசர வழிசெலுத்தல்",
+        quickSos: "🚨",
+        voiceSos: "🎙️ குரல் SOS",
+        medicalInfo: "🧩 மருத்துவத் தகவல்",
+        safeMe: "📍 சேஃப் மீ",
+        toggleTheme: "🌗 தீம் மாற்று",
+        findHospitals: "🏥 மருத்துவமனைகளைக் கண்டுபிடி",
+        findPoliceStations: "🚓 காவல் நிலையங்களைக் கண்டுபிடி",
+        findFireStations: "🔥 தீயணைப்பு நிலையங்களைக் கண்டுபிடி",
+        locationNotAvailable: "உங்கள் இருப்பிடத்தைப் பெற முடியவில்லை. தயவுசெய்து இருப்பிடச் சேவைகளை இயக்கவும்.",
+        calling: "அழைப்பு",
+        infoSaved: "மருத்துவத் தகவல் சேமிக்கப்பட்டது!",
+        contactsModalTitle: "📞 அவசரத் தொடர்புகள்",
+        contactsSaved: "அவசரத் தொடர்புகள் சேமிக்கப்பட்டன!",
+        safeMeActivated: "'சேஃப் மீ' செயல்படுத்தப்பட்டது! உங்கள் இருப்பிடம் அவ்வப்போது அனுப்பப்படும்.",
+        safeMeDeactivated: "'சேஃப் மீ' செயலிழக்கப்பட்டது.",
+        fullName: "முழு பெயர்:",
+        dob: "பிறந்த தேதி:",
+        bloodGroup: "இரத்த வகை:",
+        allergies: "ஒவ்வாமைகள்:",
+        medications: "மருந்துகள்:",
+        conditions: "மருத்துவ நிலைகள்:",
+        emergencyContact: "அவசரத் தொடர்பு:",
+        saveInfo: "💾 தகவலைச் சேமி",
+        sosModalTitle: "🚨 அவசர சேவையைத் தேர்ந்தெடு",
+        policeService: "🚓 காவல் துறை",
+        ambulanceService: "🚑 ஆம்புலன்ஸ்",
+        fireService: "🔥 தீயணைப்புப் படை",
+        contact1Name: "தொடர்பு 1 பெயர்:",
+        contact1Email: "தொடர்பு 1 மின்னஞ்சல்:",
+        contact2Name: "தொடர்பு 2 பெயர்:",
+        contact2Email: "தொடர்பு 2 மின்னஞ்சல்:",
+        saveContacts: "💾 தொடர்புகளைச் சேமி",
+        },
+      es: {
+        appHeader: "SOSit - Navegación de emergencia",
+        quickSos: "🚨",
+        voiceSos: "🎙️ SOS por voz",
+        medicalInfo: "🧩 Información médica",
+        safeMe: "📍 Safe Me",
+        toggleTheme: "🌗 Cambiar tema",
+        findHospitals: "🏥 Encontrar hospitales",
+        findPoliceStations: "🚓 Encontrar comisarías",
+        findFireStations: "🔥 Encontrar estaciones de bomberos",
+        locationNotAvailable: "No se puede obtener su ubicación. Por favor, habilite los servicios de ubicación.",
+        calling: "Llamando",
+        infoSaved: "¡Información médica guardada!",
+        contactsModalTitle: "📞 Contactos de emergencia",
+        contactsSaved: "¡Contactos de emergencia guardados!",
+        safeMeActivated: "¡'Safe Me' activado! Su ubicación se enviará periódicamente.",
+        safeMeDeactivated: "'Safe Me' desactivado.",
+        fullName: "Nombre completo:",
+        dob: "Fecha de nacimiento:",
+        bloodGroup: "Grupo sanguíneo:",
+        allergies: "Alergias:",
+        medications: "Medicamentos:",
+        conditions: "Condiciones médicas:",
+        emergencyContact: "Contacto de emergencia:",
+        saveInfo: "💾 Guardar info",
+        sosModalTitle: "🚨 Elegir servicio de emergencia",
+        policeService: "🚓 Policía",
+        ambulanceService: "🚑 Ambulancia",
+        fireService: "🔥 Bomberos",
+        contact1Name: "Nombre de contacto 1:",
+        contact1Email: "Correo electrónico de contacto 1:",
+        contact2Name: "Nombre de contacto 2:",
+        contact2Email: "Correo electrónico de contacto 2:",
+        saveContacts: "💾 Guardar contactos",
+        },
+      fr: {
+        appHeader: "SOSit - Navigation d'urgence",
+        quickSos: "🚨",
+        voiceSos: "🎙️ SOS vocal",
+        medicalInfo: "🧩 Infos médicales",
+        safeMe: "📍 Safe Me",
+        toggleTheme: "🌗 Basculer le thème",
+        findHospitals: "🏥 Trouver des hôpitaux",
+        findPoliceStations: "🚓 Trouver des postes de police",
+        findFireStations: "🔥 Trouver des casernes de pompiers",
+        locationNotAvailable: "Impossible de récupérer votre position. Veuillez activer les services de localisation.",
+        calling: "Appel en cours",
+        infoSaved: "Infos médicales enregistrées!",
+        contactsModalTitle: "📞 Contacts d'urgence",
+        contactsSaved: "Contacts d'urgence enregistrés!",
+        safeMeActivated: "'Safe Me' activé ! Votre position sera envoyée périodiquement.",
+        safeMeDeactivated: "'Safe Me' désactivé.",
+        fullName: "Nom complet:",
+        dob: "Date de naissance:",
+        bloodGroup: "Groupe sanguin:",
+        allergies: "Allergies:",
+        medications: "Médicaments:",
+        conditions: "Conditions médicales:",
+        emergencyContact: "Contact d'urgence:",
+        saveInfo: "💾 Enregistrer",
+        sosModalTitle: "🚨 Choisir un service d'urgence",
+        policeService: "🚓 Police",
+        ambulanceService: "🚑 Ambulance",
+        fireService: "🔥 Pompiers",
+        contact1Name: "Nom du contact 1:",
+        contact1Email: "Email du contact 1:",
+        contact2Name: "Nom du contact 2:",
+        contact2Email: "Email du contact 2:",
+        saveContacts: "💾 Enregistrer les contacts",
+        },
+      de: {
+        appHeader: "SOSit - Notfallnavigation",
+        quickSos: "🚨",
+        voiceSos: "🎙️ Sprach-SOS",
+        medicalInfo: "🧩 Medizinische Infos",
+        safeMe: "📍 Safe Me",
+        toggleTheme: "🌗 Thema wechseln",
+        findHospitals: "🏥 Krankenhäuser finden",
+        findPoliceStations: "🚓 Polizeistationen finden",
+        findFireStations: "🔥 Feuerwachen finden",
+        locationNotAvailable: "Standort konnte nicht abgerufen werden. Bitte aktivieren Sie die Standortdienste.",
+        calling: "Anruf",
+        infoSaved: "Medizinische Infos gespeichert!",
+        contactsModalTitle: "📞 Notfallkontakte",
+        contactsSaved: "Notfallkontakte gespeichert!",
+        safeMeActivated: "'Safe Me' aktiviert! Ihr Standort wird regelmäßig gesendet.",
+        safeMeDeactivated: "'Safe Me' deaktiviert.",
+        fullName: "Vollständiger Name:",
+        dob: "Geburtsdatum:",
+        bloodGroup: "Blutgruppe:",
+        allergies: "Allergien:",
+        medications: "Medikamente:",
+        conditions: "Medizinische Zustände:",
+        emergencyContact: "Notfallkontakt:",
+        saveInfo: "💾 Infos speichern",
+        sosModalTitle: "🚨 Notdienst auswählen",
+        policeService: "🚓 Polizei",
+        ambulanceService: "🚑 Krankenwagen",
+        fireService: "🔥 Feuerwehr",
+        contact1Name: "Kontakt 1 Name:",
+        contact1Email: "Kontakt 1 E-Mail:",
+        contact2Name: "Kontakt 2 Name:",
+        contact2Email: "Kontakt 2 E-Mail:",
+        saveContacts: "💾 Kontakte speichern",
+        },
+      ru: {
+        appHeader: "SOSit - Экстренная навигация",
+        quickSos: "🚨",
+        voiceSos: "🎙️ Голосовой SOS",
+        medicalInfo: "🧩 Мед. информация",
+        safeMe: "📍 Safe Me",
+        toggleTheme: "🌗 Сменить тему",
+        findHospitals: "🏥 Найти больницы",
+        findPoliceStations: "🚓 Найти полицию",
+        findFireStations: "🔥 Найти пожарные станции",
+        locationNotAvailable: "Невозможно получить ваше местоположение. Пожалуйста, включите службы определения местоположения.",
+        calling: "Вызов",
+        infoSaved: "Медицинская информация сохранена!",
+        contactsModalTitle: "📞 Экстренные контакты",
+        contactsSaved: "Экстренные контакты сохранены!",
+        safeMeActivated: "«Safe Me» активирован! Ваше местоположение будет отправляться периодически.",
+        safeMeDeactivated: "«Safe Me» деактивирован.",
+        fullName: "Полное имя:",
+        dob: "Дата рождения:",
+        bloodGroup: "Группа крови:",
+        allergies: "Аллергии:",
+        medications: "Лекарства:",
+        conditions: "Заболевания:",
+        emergencyContact: "Экстренный контакт:",
+        saveInfo: "💾 Сохранить инфо",
+        sosModalTitle: "🚨 Выберите экстренную службу",
+        policeService: "🚓 Полиция",
+        ambulanceService: "🚑 Скорая помощь",
+        fireService: "🔥 Пожарная бригада",
+        contact1Name: "Имя контакта 1:",
+        contact1Email: "Email контакта 1:",
+        contact2Name: "Имя контакта 2:",
+        contact2Email: "Email контакта 2:",
+        saveContacts: "💾 Сохранить контакты",
+        },
+      ar: {
+        appHeader: "SOSit - الملاحة في حالات الطوارئ",
+        quickSos: "🚨",
+        voiceSos: "🎙️ SOS صوتي",
+        medicalInfo: "🧩 معلومات طبية",
+        safeMe: "📍 Safe Me",
+        toggleTheme: "🌗 تبديل المظهر",
+        findHospitals: "🏥 البحث عن مستشفيات",
+        findPoliceStations: "🚓 البحث عن مراكز الشرطة",
+        findFireStations: "🔥 البحث عن محطات الإطفاء",
+        locationNotAvailable: "تعذر استرداد موقعك. يرجى تفعيل خدمات الموقع.",
+        calling: "جاري الاتصال",
+        infoSaved: "تم حفظ المعلومات الطبية!",
+        contactsModalTitle: "📞 جهات اتصال الطوارئ",
+        contactsSaved: "تم حفظ جهات اتصال الطوارئ!",
+        safeMeActivated: "تم تفعيل 'Safe Me'! سيتم إرسال موقعك بشكل دوري.",
+        safeMeDeactivated: "تم إلغاء تفعيل 'Safe Me'.",
+        fullName: "الاسم الكامل:",
+        dob: "تاريخ الميلاد:",
+        bloodGroup: "فصيلة الدم:",
+        allergies: "الحساسية:",
+        medications: "الأدوية:",
+        conditions: "الحالات الطبية:",
+        emergencyContact: "جهة اتصال للطوارئ:",
+        saveInfo: "💾 حفظ المعلومات",
+        sosModalTitle: "🚨 اختر خدمة الطوارئ",
+        policeService: "🚓 الشرطة",
+        ambulanceService: "🚑 الإسعاف",
+        fireService: "🔥 الإطفاء",
+        contact1Name: "اسم جهة الاتصال 1:",
+        contact1Email: "بريد جهة الاتصال 1:",
+        contact2Name: "اسم جهة الاتصال 2:",
+        contact2Email: "بريد جهة الاتصال 2:",
+        saveContacts: "💾 حفظ جهات الاتصال",
+        },
+      ja: {
+        appHeader: "SOSit - 緊急ナビゲーション",
+        quickSos: "🚨",
+        voiceSos: "🎙️ 音声SOS",
+        medicalInfo: "🧩 医療情報",
+        safeMe: "📍 Safe Me",
+        toggleTheme: "🌗 テーマ切り替え",
+        findHospitals: "🏥 病院を探す",
+        findPoliceStations: "🚓 警察署を探す",
+        findFireStations: "🔥 消防署を探す",
+        locationNotAvailable: "位置情報を取得できません。位置情報サービスを有効にしてください。",
+        calling: "発信中",
+        infoSaved: "医療情報が保存されました！",
+        contactsModalTitle: "📞 緊急連絡先",
+        contactsSaved: "緊急連絡先が保存されました！",
+        safeMeActivated: "「Safe Me」が有効になりました！あなたの位置情報は定期的に送信されます。",
+        safeMeDeactivated: "「Safe Me」が無効になりました。",
+        fullName: "氏名:",
+        dob: "生年月日:",
+        bloodGroup: "血液型:",
+        allergies: "アレルギー:",
+        medications: "服用中の薬:",
+        conditions: "病状:",
+        emergencyContact: "緊急連絡先:",
+        saveInfo: "💾 情報を保存",
+        sosModalTitle: "🚨 緊急サービスを選択",
+        policeService: "🚓 警察",
+        ambulanceService: "🚑 救急車",
+        fireService: "🔥 消防署",
+        contact1Name: "連絡先1の名前:",
+        contact1Email: "連絡先1のメール:",
+        contact2Name: "連絡先2の名前:",
+        contact2Email: "連絡先2のメール:",
+        saveContacts: "💾 連絡先を保存",
+        },
+      zh: {
+        appHeader: "SOSit - 紧急导航",
+        quickSos: "🚨",
+        voiceSos: "🎙️ 语音SOS",
+        medicalInfo: "🧩 医疗信息",
+        safeMe: "📍 Safe Me",
+        toggleTheme: "🌗 切换主题",
+        findHospitals: "🏥 查找医院",
+        findPoliceStations: "🚓 查找警察局",
+        findFireStations: "🔥 查找消防局",
+        locationNotAvailable: "无法检索您的位置。请启用位置服务。",
+        calling: "正在呼叫",
+        infoSaved: "医疗信息已保存！",
+        contactsModalTitle: "📞 紧急联系人",
+        contactsSaved: "紧急联系人已保存！",
+        safeMeActivated: "“Safe Me”已激活！您的位置将定期发送。",
+        safeMeDeactivated: "“Safe Me”已停用。",
+        fullName: "全名:",
+        dob: "出生日期:",
+        bloodGroup: "血型:",
+        allergies: "过敏:",
+        medications: "药物:",
+        conditions: "医疗状况:",
+        emergencyContact: "紧急联系人:",
+        saveInfo: "💾 保存信息",
+        sosModalTitle: "🚨 选择紧急服务",
+        policeService: "🚓 警察",
+        ambulanceService: "🚑 救护车",
+        fireService: "🔥 消防队",
+        contact1Name: "联系人1姓名:",
+        contact1Email: "联系人1邮箱:",
+        contact2Name: "联系人2姓名:",
+        contact2Email: "联系人2邮箱:",
+        saveContacts: "💾 保存联系人",
+        }
+    };
+
+    function setLanguage(lang) {
+      const t = translations[lang];
+      document.getElementById('appHeader').innerText = t.appHeader;
+      document.getElementById('quick-sos').innerText = t.quickSos;
+      document.getElementById('voiceToggle').parentElement.lastChild.nodeValue = ` ${t.voiceSos}`;
+      document.getElementById('medicalBtn').innerText = t.medicalInfo;
+      document.getElementById('safeMeBtn').innerText = t.safeMe;
+      // Added WhatsApp button translation
+      document.getElementById('themeToggle').parentElement.lastChild.nodeValue = ` ${t.toggleTheme}`;
+      document.getElementById('hospitalBtn').innerText = t.findHospitals;
+      document.getElementById('policeBtn').innerText = t.findPoliceStations;
+      document.getElementById('fireBtn').innerText = t.findFireStations;
+
+      document.getElementById('medicalModalTitle').innerText = t.medicalModalTitle;
+      document.querySelector('label[for="fullName"]').innerText = t.fullName;
+      document.querySelector('label[for="dob"]').innerText = t.dob;
+      document.querySelector('label[for="bloodGroup"]').innerText = t.bloodGroup;
+      document.querySelector('label[for="allergies"]').innerText = t.allergies;
+      document.querySelector('label[for="medications"]').innerText = t.medications;
+      document.querySelector('label[for="conditions"]').innerText = t.conditions;
+      document.querySelector('label[for="emergencyContact"]').innerText = t.emergencyContact;
+      document.getElementById('saveMedicalBtn').innerText = t.saveInfo;
+
+      document.getElementById('sosModalTitle').innerText = t.sosModalTitle;
+      document.querySelector('#sosOptionsModal button:nth-of-type(1)').innerText = t.policeService;
+      document.querySelector('#sosOptionsModal button:nth-of-type(2)').innerText = t.ambulanceService;
+      document.querySelector('#sosOptionsModal button:nth-of-type(3)').innerText = t.fireService;
+
+      document.getElementById('contactsModalTitle').innerText = t.contactsModalTitle;
+      document.querySelector('label[for="contact1Name"]').innerText = t.contact1Name;
+      document.querySelector('label[for="contact1Email"]').innerText = t.contact1Email;
+      document.querySelector('label[for="contact2Name"]').innerText = t.contact2Name;
+      document.querySelector('label[for="contact2Email"]').innerText = t.contact2Email;
+      document.getElementById('saveContactsBtn').innerText = t.saveContacts;
+    }
+
+    document.getElementById("languageSelect").addEventListener("change", (e) => {
+      setLanguage(e.target.value);
+    });
+
+    setLanguage('en');
+
+    function initMap() {
+      navigator.geolocation.getCurrentPosition(position => {
+        userLocation = [position.coords.longitude, position.coords.latitude];
+        map = tt.map({
+          key: apiKey,
+          container: 'map',
+          center: userLocation,
+          zoom: 15
+        });
+        map.addControl(new tt.NavigationControl());
+        new tt.Marker().setLngLat(userLocation).addTo(map);
+
+        map.on('click', function (e) {
+          const destination = [e.lngLat.lng, e.lngLat.lat];
+          drawRouteTo(destination, true);
+        });
+      }, (error) => {
+        console.error("Geolocation error:", error);
+        alert("Unable to retrieve your location. Please enable location services.");
+        userLocation = [77.2090, 28.6139];
+        map = tt.map({
+          key: apiKey,
+          container: 'map',
+          center: userLocation,
+          zoom: 15
+        });
+        map.addControl(new tt.NavigationControl());
+      });
+    }
+
+    function searchNearby(query) {
+      if (!userLocation) return alert(translations[document.getElementById('languageSelect').value].locationNotAvailable);
+      poiMarkers.forEach(m => m.remove());
+      poiMarkers = [];
+      const [lon, lat] = userLocation;
+      fetch(`https://api.tomtom.com/search/2/poiSearch/${query}.json?key=${apiKey}&lat=${lat}&lon=${lon}&radius=10000`)
+        .then(res => res.json())
+        .then(data => {
+          data.results.forEach(poi => {
+            const marker = new tt.Marker().setLngLat([poi.position.lon, poi.position.lat]).addTo(map);
+            poiMarkers.push(marker);
+            marker.getElement().addEventListener('click', () => drawRouteTo([poi.position.lon, poi.position.lat], true));
+          });
+        });
+    }
+
+    function drawRouteTo(destination, showPopup = false) {
+      if (routeLayer) {
+        map.removeLayer('route');
+        map.removeSource('route');
+      }
+      tt.services.calculateRoute({
+        key: apiKey,
+        locations: [userLocation, destination]
+      }).then(response => {
+        const geojson = {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: response.routes[0].legs[0].points.map(p => [p.longitude, p.latitude])
+          }
+        };
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: { type: 'geojson', data: geojson },
+          paint: { 'line-color': '#1E88E5', 'line-width': 5 }
+        });
+        routeLayer = 'route';
+
+        if (showPopup) {
+          const summary = response.routes[0].summary;
+          const minutes = Math.round(summary.travelTimeInSeconds / 60);
+          const distance = (summary.lengthInMeters / 1000).toFixed(2);
+          new tt.Popup({ offset: 35 })
+            .setLngLat(destination)
+            .setHTML(`<strong>🚗 Route Info:</strong><br>🕒 ${minutes} mins<br>📏 ${distance} km`)
+            .addTo(map);
+        }
+      });
+    }
+
+    initMap();
+
+    document.getElementById("sidebar-toggle").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.toggle("open");
+    });
+
+    document.getElementById("themeToggle").addEventListener("change", (e) => {
+      document.body.classList.toggle("dark-mode", e.target.checked);
+    });
+
+    const sosModal = document.getElementById("sosOptionsModal");
+    const closeSosModal = document.getElementById("closeSosModal");
+
+    document.getElementById("quick-sos").addEventListener("click", () => {
+      sosModal.style.display = "flex";
+    });
+
+    closeSosModal.onclick = () => sosModal.style.display = "none";
+
+    function handleEmergency(serviceName, phoneNumber) {
+      if (!userLocation) return alert(translations[document.getElementById('languageSelect').value].locationNotAvailable);
+      fetch(`https://api.tomtom.com/search/2/reverseGeocode/${userLocation[1]},${userLocation[0]}.json?key=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+          const address = data.addresses[0]?.address?.freeformAddress || 'Unknown location';
+          emailjs.send("service_s929gsa", "template_9jxocji", {
+            to_name: "Admin",
+            from_name: "SOSit App",
+            message: `🚨 Emergency Alert!\n\nService: ${serviceName}\nLocation:\n${address}\nLat: ${userLocation[1]}, Lon: ${userLocation[0]}`,
+            reply_to: "sositapp@outlook.com"
+          });
+          alert(`${translations[document.getElementById('languageSelect').value].calling} ${serviceName}...`);
+          window.location.href = `tel:${phoneNumber}`;
+          sosModal.style.display = "none";
+        });
+    }
+
+    const voiceToggle = document.getElementById("voiceToggle");
+    let recognition;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      voiceToggle.addEventListener("change", () => {
+        if (voiceToggle.checked) recognition.start();
+        else recognition.stop();
+      });
+
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            const transcript = event.results[i][0].transcript.toLowerCase();
+            if (transcript.includes("sos") || transcript.includes("help") || transcript.includes("emergency")) {
+              document.getElementById("quick-sos").click();
+            }
+          }
+        }
+      };
+    } else {
+      voiceToggle.disabled = true;
+      voiceToggle.parentElement.innerHTML += " <small>(Not supported)</small>";
+    }
+
+    const modal = document.getElementById("medicalModal");
+    const openBtn = document.getElementById("medicalBtn");
+    const closeBtn = document.getElementById("closeModal");
+
+    openBtn.onclick = () => modal.style.display = "flex";
+    closeBtn.onclick = () => modal.style.display = "none";
+
+    window.onload = function () {
+      const fields = ['fullName', 'dob', 'bloodGroup', 'allergies', 'medications', 'conditions', 'emergencyContact'];
+      fields.forEach(id => {
+        const saved = localStorage.getItem(id);
+        if (saved) document.getElementById(id).value = saved;
+      });
+      document.getElementById('contact1Name').value = localStorage.getItem('contact1Name') || '';
+      document.getElementById('contact1Email').value = localStorage.getItem('contact1Email') || '';
+      document.getElementById('contact2Name').value = localStorage.getItem('contact2Name') || '';
+      document.getElementById('contact2Email').value = localStorage.getItem('contact2Email') || '';
+    };
+
+    document.getElementById("medicalForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const fields = ['fullName', 'dob', 'bloodGroup', 'allergies', 'medications', 'conditions', 'emergencyContact'];
+      fields.forEach(id => {
+        localStorage.setItem(id, document.getElementById(id).value);
+      });
+      document.getElementById("saved-message").innerText = translations[document.getElementById('languageSelect').value].infoSaved;
+    });
+
+    // --- Safe Me Feature Logic ---
+
+    function updateSafeMeButton() {
+      const t = translations[document.getElementById('languageSelect').value];
+      safeMeBtn.innerHTML = isSafeMeActive ? `${t.safeMe} (Active)` : t.safeMe;
+      safeMeBtn.style.backgroundColor = isSafeMeActive ? '#388e3c' : '#d32f2f';
+      safeMeBtn.style.animation = isSafeMeActive ? 'glowing-background 2s infinite' : 'none';
+      safeMeBtn.style.borderColor = isSafeMeActive ? '#2e7d32' : 'transparent';
+    }
+
+    safeMeBtn.addEventListener("click", () => {
+      const t = translations[document.getElementById('languageSelect').value];
+      if (isSafeMeActive) {
+        clearInterval(safeMeIntervalId);
+        isSafeMeActive = false;
+        updateSafeMeButton();
+        alert(t.safeMeDeactivated);
+      } else {
+        contactsModal.style.display = "flex";
+        document.getElementById('contact1Name').value = localStorage.getItem('contact1Name') || '';
+        document.getElementById('contact1Email').value = localStorage.getItem('contact1Email') || '';
+        document.getElementById('contact2Name').value = localStorage.getItem('contact2Name') || '';
+        document.getElementById('contact2Email').value = localStorage.getItem('contact2Email') || '';
+      }
+    });
+
+    closeContactsModal.onclick = () => {
+      contactsModal.style.display = "none";
+      contactsSavedMessage.innerText = '';
+    };
+
+    contactsForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const contact1Name = document.getElementById('contact1Name').value;
+      const contact1Email = document.getElementById('contact1Email').value;
+      const contact2Name = document.getElementById('contact2Name').value;
+      const contact2Email = document.getElementById('contact2Email').value;
+
+      localStorage.setItem('contact1Name', contact1Name);
+      localStorage.setItem('contact1Email', contact1Email);
+      localStorage.setItem('contact2Name', contact2Name);
+      localStorage.setItem('contact2Email', contact2Email);
+
+      contactsSavedMessage.innerText = translations[document.getElementById('languageSelect').value].contactsSaved;
+
+      activateSafeMe();
+      contactsModal.style.display = "none";
+    });
+
+    function activateSafeMe() {
+      const t = translations[document.getElementById('languageSelect').value];
+      if (!userLocation) {
+        alert(t.locationNotAvailable);
+        return;
+      }
+
+      const contact1Email = localStorage.getItem('contact1Email');
+      const contact2Email = localStorage.getItem('contact2Email');
+
+      if (!contact1Email && !contact2Email) {
+        alert("Please save at least one emergency contact email to use 'Safe Me'.");
+        return;
+      }
+
+      isSafeMeActive = true;
+      updateSafeMeButton();
+      alert(t.safeMeActivated);
+
+      sendSafeMeLocation();
+      safeMeIntervalId = setInterval(sendSafeMeLocation, 120000);
+    }
+
+    function sendSafeMeLocation() {
+      if (!userLocation) {
+        console.warn("User location not available for Safe Me update.");
+        return;
+      }
+
+      const contact1Name = localStorage.getItem('contact1Name') || 'Contact 1';
+      const contact1Email = localStorage.getItem('contact1Email');
+      const contact2Name = localStorage.getItem('contact2Name') || 'Contact 2';
+      const contact2Email = localStorage.getItem('contact2Email');
+
+      fetch(`https://api.tomtom.com/search/2/reverseGeocode/${userLocation[1]},${userLocation[0]}.json?key=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+          const address = data.addresses[0]?.address?.freeformAddress || 'Unknown location';
+          const locationLink = `https://www.google.com/maps?q=$${userLocation[1]},${userLocation[0]}`;
+
+          let message = `🚨 Live Location Alert from SOSit!\n\nI've activated 'Safe Me'.\n\nMy current location is:\n${address}\nLat: ${userLocation[1]}, Lon: ${userLocation[0]}\n\nView on Map: ${locationLink}\n\nThis alert will be sent periodically.`;
+
+          if (contact1Email) {
+            emailjs.send("service_s929gsa", "template_9jxocji", {
+              to_name: contact1Name,
+              from_name: "SOSit App",
+              to_email: contact1Email,
+              message: message,
+              reply_to: "sositapp@outlook.com"
+            }).then(function(response) {
+              console.log('Safe Me email sent to Contact 1:', response.status, response.text);
+            }, function(error) {
+              console.error('Failed to send Safe Me email to Contact 1:', error);
+            });
+          }
+
+          if (contact2Email) {
+            emailjs.send("service_s929gsa", "template_9jxocji", {
+              to_name: contact2Name,
+              from_name: "SOSit App",
+              to_email: contact2Email,
+              message: message,
+              reply_to: "sositapp@outlook.com"
+            }).then(function(response) {
+              console.log('Safe Me email sent to Contact 2:', response.status, response.text);
+            }, function(error) {
+              console.error('Failed to send Safe Me email to Contact 2:', error);
+            });
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching address for Safe Me:", error);
+          const locationLink = `https://www.google.com/maps?q=$${userLocation[1]},${userLocation[0]}`;
+          let message = `🚨 Live Location Alert from SOSit!\n\nI've activated 'Safe Me'.\n\nMy current location coordinates are:\nLat: ${userLocation[1]}, Lon: ${userLocation[0]}\n\nView on Map: ${locationLink}\n\nThis alert will be sent periodically.`;
+
+          if (contact1Email) {
+            emailjs.send("service_s929gsa", "template_9jxocji", {
+              to_name: contact1Name,
+              from_name: "SOSit App",
+              to_email: contact1Email,
+              message: message,
+              reply_to: "sositapp@outlook.com"
+            });
+          }
+          if (contact2Email) {
+            emailjs.send("service_s929gsa", "template_9jxocji", {
+              to_name: contact2Name,
+              from_name: "SOSit App",
+              to_email: contact2Email,
+              message: message,
+              reply_to: "sositapp@outlook.com"
+            });
+          }
+        });
+    }
+
+    
+
+    emailjs.init("jIeKH_a-eVdrTVNGA");
+  </script>
+<script>
+    (function () {
+      if (!window.chatbase || window.chatbase("getState") !== "initialized") {
+        window.chatbase = (...args) => {
+          if (!window.chatbase.q) window.chatbase.q = [];
+          window.chatbase.q.push(args);
+        };
+        window.chatbase = new Proxy(window.chatbase, {
+          get(target, prop) {
+            if (prop === "q") return target.q;
+            return (...args) => target(prop, ...args);
+          }
+        });
+      }
+      const onLoad = function () {
+        const script = document.createElement("script");
+        script.src = "https://www.chatbase.co/embed.min.js";
+        script.id = "-yLmCyXA4m_V1pQd17blW";
+        script.domain = "www.chatbase.co";
+        document.body.appendChild(script);
+      };
+      if (document.readyState === "complete") onLoad();
+      else window.addEventListener("load", onLoad);
+    })();
+  </script>
+</body>
+</html>
+
